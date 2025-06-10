@@ -1,0 +1,72 @@
+# === GLOBAL ===
+node_modules/
+.env
+*.log
+.DS_Store
+*.iml
+.idea/
+.vscode/
+*.swp
+*.bak
+*.tmp
+*.pid
+
+# === DOCKER ===
+**/Dockerfile
+**/.dockerignore
+docker-compose.override.yml
+docker-compose.dev.yml
+*.local.yml
+**/target/
+**/build/
+**/out/
+**/logs/
+**/tmp/
+
+# === ANGULAR FRONTEND ===
+/frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/.output/
+frontend/package-lock.json
+frontend/npm-debug.log
+frontend/yarn.lock
+frontend/.env*
+frontend/.turbo/
+frontend/.cache/
+frontend/.eslintcache
+frontend/.vite/
+
+# === JAVA BACKEND (SPRING BOOT) ===
+/backend/target/
+backend/.classpath
+backend/.project
+backend/.settings/
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+backend/pom.xml.tag
+backend/pom.xml.releaseBackup
+backend/pom.xml.versionsBackup
+backend/logs/
+backend/.env*
+
+# === SWAGGER / DOCS (Optional)
+docs/
+swagger-ui/
+openapi.yaml
+openapi.json
+
+# === TESTS & COVERAGE ===
+/coverage/
+**/test-output/
+**/coverage/
+**/.nyc_output/
+**/cypress/videos/
+**/cypress/screenshots/
+**/*.lcov
+
+# === SYSTEM FILES ===
+Thumbs.db
+ehthumbs.db
+desktop.ini
