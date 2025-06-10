@@ -24,18 +24,18 @@ docker-compose.dev.yml
 **/tmp/
 
 # === ANGULAR FRONTEND ===
-/frontend/node_modules/
-frontend/dist/
-frontend/.angular/
-frontend/.output/
-frontend/package-lock.json
-frontend/npm-debug.log
-frontend/yarn.lock
-frontend/.env*
-frontend/.turbo/
-frontend/.cache/
-frontend/.eslintcache
-frontend/.vite/
+/ged-adcsa-frontend/node_modules/
+ged-adcsa-frontend/dist/
+ged-adcsa-frontend/.angular/
+ged-adcsa-frontend/.output/
+ged-adcsa-frontend/package-lock.json
+ged-adcsa-frontend/npm-debug.log
+ged-adcsa-frontend/yarn.lock
+ged-adcsa-frontend/.env*
+ged-adcsa-frontend/.turbo/
+ged-adcsa-frontend/.cache/
+ged-adcsa-frontend/.eslintcache
+ged-adcsa-frontend/.vite/
 
 # === JAVA BACKEND (SPRING BOOT) ===
 /backend/target/
@@ -70,3 +70,4 @@ openapi.json
 Thumbs.db
 ehthumbs.db
 desktop.ini
+"ged-adcsa-frontend/.angular/cache/" 
