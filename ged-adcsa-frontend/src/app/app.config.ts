@@ -1,14 +1,12 @@
 /**
- * Configuration globale de l'application
- * 
- * Ce fichier définit la configuration globale de l'application :
- * - Les providers Angular
- * - Les intercepteurs HTTP
- * - Les animations
- * - Le routage
- * 
- * Cette configuration est utilisée au démarrage de l'application
- * dans le fichier main.ts
+ * Fichier de configuration globale de l'application (app.config.ts)
+ *
+ * Ce fichier centralise la configuration de l'application Angular :
+ * - Déclare les providers globaux (animations, HTTP, routing)
+ * - Configure les intercepteurs HTTP (ex : AuthInterceptor)
+ * - Importe les routes principales
+ *
+ * Utilisé au démarrage de l'application (main.ts) pour initialiser tous les services nécessaires.
  */
 
 import { ApplicationConfig } from '@angular/core';

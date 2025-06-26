@@ -17,7 +17,7 @@ export const environment = {
   
   // URL de base de l'API
   // En développement, on utilise localhost
-  apiUrl: 'http://localhost:8080/api',
+  apiUrl: 'http://localhost:8085/api',
   
   // Clés d'API pour les services externes
   // À remplacer par vos propres clés

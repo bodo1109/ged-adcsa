@@ -3,66 +3,59 @@
  * 
  * Ce composant est le point d'entrée de l'application. Il :
  * - Gère la structure globale de l'application
- * - Affiche la barre de navigation
+ * - Affiche la barre de navigation uniquement sur le dashboard
  * - Gère l'affichage conditionnel des éléments
  * - S'occupe de la déconnexion
  * 
  * La barre de navigation est affichée uniquement :
- * - Quand l'utilisateur est connecté
- * - Sur les pages qui ne sont pas la page de connexion
+ * - Sur la page dashboard
  */
 
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { AuthService } from './services/auth.service';
 import { FooterComponent } from './components/footer/footer.component';
+import { filter, take } from 'rxjs/operators';
+import { Location } from '@angular/common';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterModule, FooterComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatToolbarModule,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
+    FooterComponent
+  ],
   template: `
     <div class="app-container">
-      <!-- Barre de navigation -->
-      <nav *ngIf="showNavbar">
-        <div class="nav-content">
-          <!-- Logo et titre -->
-          <div class="nav-brand">
-            <img src="assets/logo.png" alt="Logo" class="nav-logo">
-            <span class="nav-title">GED</span>
-          </div>
-
-          <!-- Liens de navigation -->
-          <div class="nav-links">
-            <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
-              Accueil
-            </a>
-            <a routerLink="/dashboard" routerLinkActive="active">
-              Tableau de bord
-            </a>
-            <a routerLink="/profile" routerLinkActive="active">
-              Profil
-            </a>
-            <a routerLink="/settings" routerLinkActive="active">
-              Paramètres
-            </a>
-          </div>
-
-          <!-- Bouton de déconnexion -->
-          <button class="logout-btn" (click)="logout()">
-            Se déconnecter
+      <mat-toolbar color="primary" *ngIf="(isAuthenticated$ | async) && showNavbar">
+        <img src="assets/images/img.png" alt="ADCSA Logo" class="logo">
+        <span class="spacer"></span>
+        <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Menu">
+          <mat-icon>account_circle</mat-icon>
+        </button>
+        <mat-menu #menu="matMenu">
+          <button mat-menu-item (click)="onLogout()">
+            <mat-icon>exit_to_app</mat-icon>
+            <span>Déconnexion</span>
           </button>
-        </div>
-      </nav>
-
-      <!-- Contenu principal -->
-      <main>
+        </mat-menu>
+      </mat-toolbar>
+      
+      <main class="main-content">
         <router-outlet></router-outlet>
       </main>
-
-      <!-- Pied de page -->
-      <app-footer></app-footer>
+      
+      <app-footer *ngIf="shouldShowFooter()"></app-footer>
     </div>
   `,
   styles: [`
@@ -71,100 +64,79 @@ import { FooterComponent } from './components/footer/footer.component';
       display: flex;
       flex-direction: column;
     }
-
-    /* Styles de la barre de navigation */
-    nav {
-      background-color: #ffffff;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      padding: 1rem;
-    }
-
-    .nav-content {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .nav-brand {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .nav-logo {
-      height: 40px;
-    }
-
-    .nav-title {
-      font-size: 1.5rem;
-      font-weight: bold;
-      color: #333;
-    }
-
-    .nav-links {
-      display: flex;
-      gap: 2rem;
-    }
-
-    .nav-links a {
-      color: #666;
-      text-decoration: none;
-      padding: 0.5rem;
-      border-radius: 4px;
-      transition: all 0.3s ease;
-    }
-
-    .nav-links a:hover {
-      color: #333;
-      background-color: #f5f5f5;
-    }
-
-    .nav-links a.active {
-      color: #1976d2;
-      font-weight: 500;
-    }
-
-    .logout-btn {
-      background-color: #f44336;
-      color: white;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-
-    .logout-btn:hover {
-      background-color: #d32f2f;
-    }
-
-    /* Styles du contenu principal */
-    main {
+    
+    .main-content {
       flex: 1;
-      max-width: 1200px;
-      margin: 2rem auto;
-      padding: 0 1rem;
+    }
+    
+    .logo {
+      height: 40px;
+      margin-right: 16px;
+    }
+    .spacer {
+      flex: 1 1 auto;
     }
   `]
 })
-export class AppComponent {
-  // Indique si la barre de navigation doit être affichée
+export class AppComponent implements OnInit {
+  isAuthenticated$ = this.authService.isAuthenticated();
+  isConnecting$ = this.authService.isConnecting();
   showNavbar = false;
 
-  constructor(private authService: AuthService) {
-    // On s'abonne aux changements d'état d'authentification
-    this.authService.isAuthenticated$.subscribe(isAuthenticated => {
-      this.showNavbar = isAuthenticated;
+  constructor(
+    private authService: AuthService,
+    private router: Router,
+    private location: Location
+  ) {
+    console.log('AppComponent initialisé');
+  }
+
+  ngOnInit() {
+    console.log('AppComponent ngOnInit');
+    
+    this.router.events.subscribe(event => {
+      if (event instanceof NavigationEnd) {
+        this.isAuthenticated$.pipe(take(1)).subscribe(isAuthenticated => {
+          const publicRoutes = ['/login', '/reset-form', '/reset-request'];
+          const currentPath = this.location.path().split('?')[0];
+          console.log('ROUTE DEBUG:', this.router.url, 'currentPath:', currentPath, 'isAuthenticated:', isAuthenticated);
+          if (
+            !isAuthenticated &&
+            !publicRoutes.includes(currentPath)
+          ) {
+            console.log('Redirection vers la page de connexion...');
+            this.router.navigate(['/login']);
+            this.showNavbar = false;
+          }
+        });
+      }
+    });
+
+    // Surveiller l'état de connexion pour afficher la navbar avec un délai
+    this.isConnecting$.subscribe(isConnecting => {
+      if (!isConnecting) {
+        // Attendre un peu avant d'afficher la navbar pour laisser le dashboard se charger
+        setTimeout(() => {
+          this.showNavbar = true;
+        }, 500);
+      } else {
+        this.showNavbar = false;
+      }
     });
   }
 
-  /**
-   * Déconnecte l'utilisateur
-   * Cette méthode est appelée quand l'utilisateur clique sur le bouton de déconnexion
-   */
-  logout(): void {
-    this.authService.logout();
+  shouldShowFooter(): boolean {
+    // Afficher le footer sur toutes les pages sauf la page de connexion
+    return this.router.url !== '/login';
+  }
+
+  onLogout(): void {
+    console.log('Clic sur le bouton de déconnexion');
+    try {
+      this.authService.logout();
+      console.log('Déconnexion effectuée avec succès');
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    }
   }
 }

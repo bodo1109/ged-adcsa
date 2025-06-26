@@ -12,6 +12,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatToolbarModule } from '@angular/material/toolbar';
+import { AuthService } from '../../services/auth.service';
 
 interface Document {
   id: number;
@@ -30,6 +31,30 @@ interface Stat {
   color: string;
 }
 
+/**
+ * Composant du tableau de bord (Dashboard)
+ *
+ * Ce composant affiche la page principale après connexion :
+ * - Affiche les statistiques clés (cartes)
+ * - Liste les documents avec options de recherche, filtre et actions
+ * - Permet de naviguer vers la réinitialisation du mot de passe
+ * - Gère la déconnexion
+ *
+ * Structure :
+ * - Header avec actions rapides
+ * - Cartes de statistiques
+ * - Tableau des documents
+ *
+ * Les méthodes principales :
+ * - logout() : Déconnecte l'utilisateur
+ * - navigateToResetRequest() : Va vers la demande de reset
+ * - navigateToResetForm() : Va vers le formulaire de reset
+ *
+ * Les propriétés :
+ * - documents : Liste des documents affichés
+ * - stats : Statistiques affichées en haut
+ * - searchQuery, selectedCategory : Pour la recherche/filtrage
+ */
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -57,6 +82,14 @@ interface Stat {
             <p>Gestion centralisée des documents ADCSA</p>
           </div>
           <div class="header-actions">
+            <button mat-raised-button color="accent" class="action-btn" (click)="navigateToResetRequest()">
+              <mat-icon>lock_reset</mat-icon>
+              Reset Request
+            </button>
+            <button mat-raised-button color="warn" class="action-btn" (click)="navigateToResetForm()">
+              <mat-icon>password</mat-icon>
+              Reset Form
+            </button>
             <button mat-icon-button class="action-btn">
               <mat-icon>notifications</mat-icon>
             </button>
@@ -249,27 +282,41 @@ interface Stat {
 
     .header-actions {
       display: flex;
+      align-items: center;
       gap: 12px;
     }
 
+    .header-actions .action-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .header-actions .action-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
     .action-btn {
+      color: #666;
+      transition: color 0.2s ease;
+    }
+
+    .action-btn:hover {
+      color: #333;
+    }
+
+    .logout-btn {
       background: rgba(255, 255, 255, 0.2) !important;
       color: white !important;
       border: 1px solid rgba(255, 255, 255, 0.3) !important;
     }
 
-    .action-btn:hover {
-      background: rgba(255, 255, 255, 0.3) !important;
-    }
-
-    .logout-btn {
-      background: rgba(244, 67, 54, 0.2) !important;
-      color: white !important;
-      border: 1px solid rgba(244, 67, 54, 0.3) !important;
-    }
-
     .logout-btn:hover {
-      background: rgba(244, 67, 54, 0.3) !important;
+      background: rgba(255, 255, 255, 0.3) !important;
     }
 
     .stats-grid {
@@ -578,7 +625,10 @@ export class DashboardComponent {
     { label: 'Archivés', value: '456', icon: 'folder', color: 'purple' }
   ];
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private authService: AuthService
+  ) {}
 
   getStatusClass(status: string): string {
     switch (status) {
@@ -594,6 +644,17 @@ export class DashboardComponent {
   }
 
   logout() {
-    this.router.navigate(['/session-expired']);
+    console.log('Logout appelé depuis le dashboard');
+    this.authService.logout();
+  }
+
+  navigateToResetRequest() {
+    console.log('Navigation vers reset-request');
+    this.router.navigate(['/reset-request']);
+  }
+
+  navigateToResetForm() {
+    console.log('Navigation vers reset-form');
+    this.router.navigate(['/reset-form']);
   }
 }

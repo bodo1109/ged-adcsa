@@ -15,6 +15,7 @@
 import { Injectable } from '@angular/core';
 import { Router, CanActivate } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { Observable, map, take } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -29,15 +30,19 @@ export class AuthGuard implements CanActivate {
    * Méthode appelée par Angular pour vérifier si l'accès est autorisé
    * @returns true si l'accès est autorisé, false sinon
    */
-  canActivate(): boolean {
-    // On vérifie si l'utilisateur est connecté
-    if (this.authService.isAuthenticated()) {
-      // Si oui, on autorise l'accès
-      return true;
-    }
-
-    // Si non, on redirige vers la page de connexion
-    this.router.navigate(['/login']);
-    return false;
+  canActivate(): Observable<boolean> {
+    console.log('Vérification de l\'authentification par le guard');
+    return this.authService.isAuthenticated().pipe(
+      take(1),
+      map(isAuthenticated => {
+        console.log('État d\'authentification dans le guard:', isAuthenticated);
+        if (isAuthenticated) {
+          return true;
+        }
+        console.log('Redirection vers la page de connexion par le guard');
+        this.router.navigate(['/login']);
+        return false;
+      })
+    );
   }
 } 

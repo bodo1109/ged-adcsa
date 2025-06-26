@@ -2,6 +2,12 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDividerModule } from '@angular/material/divider';
 
+/**
+ * Composant Footer (pied de page)
+ *
+ * Affiche les liens d'information, d'assistance et légaux en bas de page.
+ * S'affiche sur toutes les pages sauf exception.
+ */
 @Component({
   selector: 'app-footer',
   standalone: true,

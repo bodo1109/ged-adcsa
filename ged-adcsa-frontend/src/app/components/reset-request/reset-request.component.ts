@@ -8,7 +8,28 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { AuthService } from '../../services/auth.service';
 
+/**
+ * Composant de demande de réinitialisation de mot de passe (Reset Request)
+ *
+ * Ce composant permet à l'utilisateur de demander un lien de réinitialisation :
+ * - Affiche un formulaire pour saisir l'email professionnel
+ * - Affiche des messages d'information, d'erreur et de succès
+ * - Redirige vers la connexion après succès
+ *
+ * Structure :
+ * - Image informative à gauche
+ * - Formulaire à droite
+ *
+ * Les méthodes principales :
+ * - onSubmit() : Envoie la demande de réinitialisation
+ * - navigateToLogin() : Retour à la page de connexion
+ *
+ * Les propriétés :
+ * - resetForm : Formulaire réactif
+ * - isSubmitted, isLoading, errorMessage : États d'UI
+ */
 @Component({
   selector: 'app-reset-request',
   standalone: true,
@@ -67,7 +88,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
               <form [formGroup]="resetForm" (ngSubmit)="onSubmit()">
                 <mat-form-field appearance="outline">
                   <mat-label>Adresse email professionnelle</mat-label>
-                  <input matInput type="email" formControlName="email" placeholder="prenom.nom@adcsa.cm">
+                  <input matInput type="email" formControlName="email" placeholder="prenom.nom@adcsa.aero">
                   <mat-icon matSuffix>email</mat-icon>
                 </mat-form-field>
 
@@ -79,9 +100,22 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                   </div>
                 </div>
 
-                <button mat-raised-button color="primary" type="submit" [disabled]="resetForm.invalid" class="submit-btn">
-                  Envoyer le lien de récupération
+                <button mat-raised-button color="primary" type="submit" [disabled]="resetForm.invalid || isLoading" class="submit-btn">
+                  <ng-container *ngIf="!isLoading">
+                    Envoyer le lien de récupération
+                  </ng-container>
+                  <ng-container *ngIf="isLoading">
+                    <span class="spinner-container">
+                      <mat-spinner diameter="24"></mat-spinner>
+                    </span>
+                    <!-- <span class="loading-text">Envoi en cours...</span> -->
+                  </ng-container>
                 </button>
+
+                <div *ngIf="errorMessage" class="error-message">
+                  <mat-icon>error</mat-icon>
+                  <span>{{errorMessage}}</span>
+                </div>
               </form>
 
               <div class="back-link">
@@ -111,6 +145,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     .page-container {
       max-width: 1200px;
       margin: 0 auto;
+      padding-bottom: 60px;
     }
 
     .content-grid {
@@ -270,11 +305,14 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     }
 
     .submit-btn {
+      display: flex !important;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       width: 100%;
       padding: 16px !important;
       font-size: 16px !important;
       font-weight: 700 !important;
-      margin-bottom: 24px !important;
     }
 
     .back-link {
@@ -292,7 +330,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     }
 
     .success-icon {
+      display: flex;
+      justify-content: center;
+      align-items: center;
       margin-bottom: 24px;
+      width: 100%;
     }
 
     .success-section h3 {
@@ -315,6 +357,33 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     .redirect-text {
       font-size: 14px;
       color: #999;
+    }
+
+    .loading-spinner {
+      vertical-align: middle;
+      margin-right: 8px;
+      display: inline-block;
+    }
+
+    .error-message {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #c62828;
+      background: #ffebee;
+      border: 1px solid #ffcdd2;
+      border-radius: 6px;
+      padding: 10px 16px;
+      margin-top: 12px;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .error-message mat-icon {
+      color: #c62828;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
     }
 
     @media (max-width: 968px) {
@@ -347,14 +416,35 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
         margin: 16px;
         height: 300px;
       }
+
+      .page-container {
+        padding-bottom: 40px;
+      }
+    }
+
+    .spinner-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+    }
+    .loading-text {
+      display: block;
+      text-align: center;
+      margin-top: 4px;
+      color: #1976d2;
+      font-size: 14px;
+      font-weight: 500;
     }
   `]
 })
 export class ResetRequestComponent {
   resetForm: FormGroup;
   isSubmitted = false;
+  isLoading = false;
+  errorMessage = '';
 
-  constructor(private fb: FormBuilder, private router: Router) {
+  constructor(private fb: FormBuilder, private router: Router, private authService: AuthService) {
     this.resetForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]]
     });
@@ -362,10 +452,32 @@ export class ResetRequestComponent {
 
   onSubmit() {
     if (this.resetForm.valid) {
-      this.isSubmitted = true;
-      setTimeout(() => {
-        this.router.navigate(['/reset-form']);
-      }, 3000);
+      this.isLoading = true;
+      this.errorMessage = '';
+      const email = this.resetForm.get('email')?.value;
+      const start = Date.now();
+      this.authService.requestPasswordReset(email).subscribe({
+        next: () => {
+          this.isLoading = false;
+          this.isSubmitted = true;
+          setTimeout(() => {
+            this.router.navigate(['/login']);
+          }, 3000);
+        },
+        error: (err) => {
+          const elapsed = Date.now() - start;
+          const minDelay = 1000;
+          const showError = () => {
+            this.isLoading = false;
+            this.errorMessage = err?.error?.message || 'Une erreur est survenue. Veuillez réessayer.';
+          };
+          if (elapsed < minDelay) {
+            setTimeout(showError, minDelay - elapsed);
+          } else {
+            showError();
+          }
+        }
+      });
     }
   }
 

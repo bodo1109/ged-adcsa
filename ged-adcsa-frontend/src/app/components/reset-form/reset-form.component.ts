@@ -1,13 +1,36 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { AuthService } from '../../services/auth.service';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
+/**
+ * Composant de réinitialisation du mot de passe (Reset Form)
+ *
+ * Ce composant permet à l'utilisateur de définir un nouveau mot de passe après avoir reçu un lien de récupération :
+ * - Affiche un formulaire pour saisir et confirmer le nouveau mot de passe
+ * - Affiche des conseils de sécurité
+ * - Gère l'affichage des messages d'erreur et de succès
+ * - Redirige vers la connexion après succès
+ *
+ * Structure :
+ * - Image informative à gauche
+ * - Formulaire à droite
+ *
+ * Les méthodes principales :
+ * - onSubmit() : Valide et envoie le nouveau mot de passe
+ *
+ * Les propriétés :
+ * - resetForm : Formulaire réactif
+ * - isLoading, isSuccess, errorMessage : États d'UI
+ * - token : Jeton de récupération extrait de l'URL
+ */
 @Component({
   selector: 'app-reset-form',
   standalone: true,
@@ -18,7 +41,8 @@ import { MatIconModule } from '@angular/material/icon';
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MatIconModule
+    MatIconModule,
+    MatProgressSpinnerModule
   ],
   template: `
     <div class="page-container fade-in-up">
@@ -65,7 +89,7 @@ import { MatIconModule } from '@angular/material/icon';
             <form [formGroup]="resetForm" (ngSubmit)="onSubmit()">
               <mat-form-field appearance="outline">
                 <mat-label>Nouveau mot de passe</mat-label>
-                <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password" 
+                <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="newPassword" 
                        placeholder="Créez un mot de passe robuste">
                 <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button">
                   <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
@@ -91,9 +115,24 @@ import { MatIconModule } from '@angular/material/icon';
                 </ul>
               </div>
 
-              <button mat-raised-button color="primary" type="submit" [disabled]="resetForm.invalid" class="submit-btn">
-                Confirmer le nouveau mot de passe
+              <button mat-raised-button color="primary" type="submit" [disabled]="resetForm.invalid || isLoading" class="submit-btn">
+                <ng-container *ngIf="!isLoading && !isSuccess">
+                  Confirmer le nouveau mot de passe
+                </ng-container>
+                <ng-container *ngIf="isLoading">
+                  <span class="spinner-container">
+                    <mat-spinner diameter="24"></mat-spinner>
+                  </span>
+                </ng-container>
+                <ng-container *ngIf="isSuccess">
+                  <mat-icon>check_circle</mat-icon> Succès !
+                </ng-container>
               </button>
+
+              <div *ngIf="errorMessage" class="error-message">
+                <mat-icon>error</mat-icon>
+                <span>{{errorMessage}}</span>
+              </div>
             </form>
 
             <div class="footer-note">
@@ -115,6 +154,7 @@ import { MatIconModule } from '@angular/material/icon';
       grid-template-columns: 1fr 1fr;
       gap: 24px;
       align-items: stretch;
+      margin-bottom: 48px;
     }
 
     .image-section {
@@ -285,6 +325,7 @@ import { MatIconModule } from '@angular/material/icon';
       text-align: center;
       font-size: 14px;
       color: #666;
+      margin-top: 32px;
     }
 
     @media (max-width: 968px) {
@@ -324,17 +365,45 @@ export class ResetFormComponent {
   resetForm: FormGroup;
   hidePassword = true;
   hideConfirmPassword = true;
+  isLoading = false;
+  isSuccess = false;
+  errorMessage = '';
+  token: string | null = null;
 
-  constructor(private fb: FormBuilder, private router: Router) {
+  constructor(
+    private fb: FormBuilder,
+    private router: Router,
+    private route: ActivatedRoute,
+    private authService: AuthService
+  ) {
     this.resetForm = this.fb.group({
-      password: ['', [Validators.required, Validators.minLength(8)]],
+      newPassword: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required]]
+    });
+    this.route.queryParamMap.subscribe(params => {
+      this.token = params.get('token');
     });
   }
 
   onSubmit() {
-    if (this.resetForm.valid) {
-      this.router.navigate(['/login']);
+    if (this.resetForm.valid && this.token) {
+      this.isLoading = true;
+      this.errorMessage = '';
+      const newPassword = this.resetForm.get('newPassword')?.value;
+      const confirmPassword = this.resetForm.get('confirmPassword')?.value;
+      this.authService.resetPasswordWithToken(this.token, newPassword, confirmPassword).subscribe({
+        next: () => {
+          this.isLoading = false;
+          this.isSuccess = true;
+          setTimeout(() => {
+            this.router.navigate(['/login']);
+          }, 3000);
+        },
+        error: (err) => {
+          this.isLoading = false;
+          this.errorMessage = err?.error?.message || 'Une erreur est survenue. Veuillez réessayer.';
+        }
+      });
     }
   }
 }

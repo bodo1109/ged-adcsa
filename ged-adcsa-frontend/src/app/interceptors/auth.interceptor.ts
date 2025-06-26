@@ -41,10 +41,10 @@ export class AuthInterceptor implements HttpInterceptor {
    * @returns Un Observable qui émet la réponse HTTP
    */
   intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
-    // On récupère le token d'authentification
+    // Récupérer le token
     const token = this.authService.getToken();
-
-    // Si on a un token, on l'ajoute à l'en-tête de la requête
+    
+    // Si le token existe, l'ajouter aux headers
     if (token) {
       request = request.clone({
         setHeaders: {
@@ -53,18 +53,17 @@ export class AuthInterceptor implements HttpInterceptor {
       });
     }
 
-    // On continue le traitement de la requête
     return next.handle(request).pipe(
-      // On intercepte les erreurs
       catchError((error: HttpErrorResponse) => {
-        // Si c'est une erreur d'authentification (401)
         if (error.status === 401) {
-          // On déconnecte l'utilisateur
+          // Token expiré ou invalide
           this.authService.logout();
-          // On le redirige vers la page de connexion
           this.router.navigate(['/login']);
+        } else if (error.status === 403) {
+          // Accès non autorisé
+          console.error('Accès non autorisé:', error);
+          this.router.navigate(['/unauthorized']);
         }
-        // On propage l'erreur
         return throwError(() => error);
       })
     );

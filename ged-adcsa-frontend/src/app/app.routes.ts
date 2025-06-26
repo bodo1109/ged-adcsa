@@ -29,11 +29,28 @@ export const routes: Routes = [
     loadComponent: () => import('./components/login/login.component').then(m => m.LoginComponent)
   },
   
-  // Exemple de route protégée (à décommenter si le composant existe)
+  // route protégée (à décommenter si le composant existe)
   {
     path: 'dashboard',
     loadComponent: () => import('./components/dashboard/dashboard.component').then(m => m.DashboardComponent),
     canActivate: [AuthGuard]
+  },
+
+  {
+    path: 'first-password',
+    loadComponent: () => import('./components/first-password/first-password.component').then(m => m.FirstPasswordComponent),
+    canActivate: [AuthGuard] // Si vous voulez que l'utilisateur soit authentifié pour y accéder
+  },
+  
+  {
+    path: 'reset-request',
+    loadComponent: () => import('./components/reset-request/reset-request.component').then(m => m.ResetRequestComponent)
+    // Pas de AuthGuard car c'est pour récupérer un mot de passe oublié
+  },
+  
+  {
+    path: 'reset-form',
+    loadComponent: () => import('./components/reset-form/reset-form.component').then(m => m.ResetFormComponent),
   },
   // {
   //   path: 'profile',

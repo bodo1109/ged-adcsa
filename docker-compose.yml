@@ -3,8 +3,8 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15
-    container_name: postgres
-    restart: always
+    container_name: adcsa-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ged_adcsa
       POSTGRES_USER: admin
@@ -12,11 +12,14 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - adcsa-network
 
   minio:
     image: minio/minio
     container_name: minio
+    restart: unless-stopped
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -26,6 +29,8 @@ services:
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
+    networks:
+      - adcsa-network
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
@@ -33,21 +38,33 @@ services:
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
+      - bootstrap.memory_lock=true
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
     ports:
       - "9200:9200"
       - "9300:9300"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - adcsa-network
 
   redis:
     image: redis:7-alpine
     container_name: redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
+    networks:
+      - adcsa-network
 
   camunda:
     image: camunda/camunda-bpm-platform:run-latest
     container_name: camunda
+    restart: unless-stopped
     ports:
       - "8081:8080"
     environment:
@@ -55,10 +72,15 @@ services:
       - DB_URL=jdbc:postgresql://postgres:5432/ged_adcsa
       - DB_USERNAME=admin
       - DB_PASSWORD=admin123
+    depends_on:
+      - postgres
+    networks:
+      - adcsa-network
 
   backend:
-    build: ./backend
+    build: ./ged-adcsa-backend
     container_name: backend
+    restart: unless-stopped
     depends_on:
       - postgres
       - redis
@@ -75,16 +97,25 @@ services:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
       ELASTICSEARCH_HOST: http://elasticsearch:9200
+    networks:
+      - adcsa-network
 
   frontend:
-    build: ./frontend
+    build: ./ged-adcsa-frontend
     container_name: frontend
+    restart: unless-stopped
     ports:
       - "80:80"
     depends_on:
       - backend
+    networks:
+      - adcsa-network
 
 volumes:
-  postgres_data:
+  pgdata:
   minio_data:
   elasticsearch_data:
+
+networks:
+  adcsa-network:
+    driver: bridge

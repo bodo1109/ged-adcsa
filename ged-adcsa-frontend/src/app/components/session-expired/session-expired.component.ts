@@ -5,6 +5,21 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
+/**
+ * Composant d'expiration de session
+ *
+ * Affiche un message lorsque la session utilisateur a expiré pour des raisons de sécurité :
+ * - Explique pourquoi la session a expiré
+ * - Propose de se reconnecter
+ * - Affiche des informations de sécurité
+ *
+ * Structure :
+ * - Icône informative à gauche
+ * - Message et bouton de reconnexion à droite
+ *
+ * Méthode principale :
+ * - navigateToLogin() : Redirige vers la page de connexion
+ */
 @Component({
   selector: 'app-session-expired',
   standalone: true,

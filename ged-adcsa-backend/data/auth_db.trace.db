@@ -1,0 +1,6 @@
+2025-06-26 17:39:14.254978+02:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "UTILISATEUR" not found (candidates are: "utilisateur"); SQL statement:
+SELECT * FROM UTILISATEUR [42103-224]
+2025-06-26 17:39:51.164490+02:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "UTILISATEUR" not found (candidates are: "utilisateur"); SQL statement:
+SELECT * FROM utilisateur [42103-224]

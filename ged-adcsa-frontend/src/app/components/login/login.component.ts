@@ -26,7 +26,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { AuthService, AuthResponse } from '../../services/auth.service';
+import { AuthService, AuthResponse, LoginCredentials } from '../../services/auth.service';
+import { take } from 'rxjs/operators';
 
 @Component({
   selector: 'app-login',
@@ -65,7 +66,10 @@ import { AuthService, AuthResponse } from '../../services/auth.service';
         <!-- Right side - Form -->
         <div class="form-section">
           <mat-card class="form-card glass-card">
-            <div class="cameroon-flag-accent"></div>
+            <div class="cameroon-flag-accent" 
+                 [class.loading-bar]="isLoading"
+                 [class.success-bar]="isSuccess"
+                 [class.error-bar]="isError"></div>
             
             <div class="logo-section">
               <div class="logo">
@@ -92,20 +96,19 @@ import { AuthService, AuthResponse } from '../../services/auth.service';
             <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
               <mat-form-field appearance="outline">
                 <mat-label>Nom d'utilisateur ou Email</mat-label>
-                <input matInput formControlName="username" placeholder="Entrez votre identifiant professionnel">
+                <input matInput formControlName="username" placeholder="Entrez votre identifiant professionnel" (input)="onFieldChange()">
                 <mat-icon matSuffix>person</mat-icon>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
                 <mat-label>Mot de passe</mat-label>
-                <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password" placeholder="Entrez votre mot de passe">
+                <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password" placeholder="Entrez votre mot de passe" (input)="onFieldChange()">
                 <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button">
                   <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
                 </button>
               </mat-form-field>
 
               <button mat-raised-button color="primary" type="submit" [disabled]="isLoading || loginForm.invalid" class="submit-btn">
-                <mat-spinner *ngIf="isLoading" diameter="20" class="loading-spinner"></mat-spinner>
                 <span *ngIf="!isLoading">Se connecter</span>
                 <span *ngIf="isLoading">Connexion en cours...</span>
               </button>
@@ -339,6 +342,84 @@ import { AuthService, AuthResponse } from '../../services/auth.service';
       right: 0;
       height: 4px;
       background: linear-gradient(to right, #007A5E, #CE1126, #FCD116);
+      transition: all 0.8s ease-in-out;
+      width: 100%;
+    }
+
+    .cameroon-flag-accent.loading-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 9999;
+      height: 6px;
+      background: linear-gradient(to right, #007A5E, #CE1126, #FCD116);
+      animation: loadingAnimation 3s ease-in-out infinite;
+      width: 100vw;
+      transition: all 0.8s ease-in-out;
+    }
+
+    .cameroon-flag-accent.success-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 9999;
+      height: 6px;
+      background: linear-gradient(to right, #4CAF50, #45a049, #2E7D32);
+      animation: successAnimation 1s ease-in-out;
+      width: 100vw;
+      transition: all 0.8s ease-in-out;
+    }
+
+    .cameroon-flag-accent.error-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 9999;
+      height: 6px;
+      background: linear-gradient(to right, #f44336, #d32f2f, #c62828);
+      animation: errorAnimation 1s ease-in-out;
+      width: 100vw;
+      transition: all 0.8s ease-in-out;
+    }
+
+    @keyframes loadingAnimation {
+      0% {
+        background: linear-gradient(to right, #007A5E, #CE1126, #FCD116);
+        transform: translateX(-100%);
+      }
+      50% {
+        background: linear-gradient(to right, #FCD116, #007A5E, #CE1126);
+        transform: translateX(0%);
+      }
+      100% {
+        background: linear-gradient(to right, #CE1126, #FCD116, #007A5E);
+        transform: translateX(100%);
+      }
+    }
+
+    @keyframes successAnimation {
+      0% {
+        background: linear-gradient(to right, #007A5E, #CE1126, #FCD116);
+        transform: translateX(-100%);
+      }
+      100% {
+        background: linear-gradient(to right, #4CAF50, #45a049, #2E7D32);
+        transform: translateX(0%);
+      }
+    }
+
+    @keyframes errorAnimation {
+      0% {
+        background: linear-gradient(to right, #007A5E, #CE1126, #FCD116);
+        transform: translateX(-100%);
+      }
+      100% {
+        background: linear-gradient(to right, #f44336, #d32f2f, #c62828);
+        transform: translateX(0%);
+      }
     }
 
     @media (max-width: 768px) {
@@ -370,49 +451,76 @@ export class LoginComponent implements OnInit {
 
   hidePassword: boolean = true;
   showError: boolean = false;
+  isSuccess: boolean = false;
+  isError: boolean = false;
 
   constructor(
-    private formBuilder: FormBuilder,    // Pour créer notre formulaire
+    private fb: FormBuilder,    // Pour créer notre formulaire
     private authService: AuthService,    // Pour gérer la connexion
     private router: Router              // Pour naviguer après la connexion
   ) {
     // On crée notre formulaire avec ses règles
-    this.loginForm = this.formBuilder.group({
-      username: ['', [Validators.required]],  // Le nom d'utilisateur est obligatoire
-      password: ['', [Validators.required]]   // Le mot de passe est obligatoire
+    this.loginForm = this.fb.group({
+      username: ['', [Validators.required]],  // Changement de email à username
+      password: ['', Validators.required]
     });
   }
 
   ngOnInit(): void {
+    // Forcer le scroll vers le haut pour que la barre colorée soit visible
+    window.scrollTo(0, 10);
+    
     // Au démarrage du composant, on vérifie si l'utilisateur est déjà connecté
-    // Si oui, on le redirige vers la page d'accueil
-    // C'est utile si quelqu'un essaie d'accéder à /login alors qu'il est déjà connecté
-    if (this.authService.isAuthenticated()) {
-      this.router.navigate(['/']);
+    this.authService.isAuthenticated().pipe(
+      take(1)
+    ).subscribe(isAuthenticated => {
+      if (isAuthenticated) {
+        console.log('Utilisateur déjà authentifié, redirection vers le dashboard');
+        this.router.navigate(['/dashboard']);
+      } else {
+        console.log('Utilisateur non authentifié, affichage du formulaire de connexion');
+      }
+    });
+
+    // Écouter les changements dans les champs pour effacer les erreurs
+    this.loginForm.valueChanges.subscribe(() => {
+      if (this.showError) {
+        this.showError = false;
+        this.errorMessage = '';
+      }
+    });
+  }
+
+  /**
+   * Méthode pour effacer les erreurs quand l'utilisateur commence à taper
+   */
+  onFieldChange(): void {
+    if (this.showError) {
+      this.showError = false;
+      this.errorMessage = '';
     }
   }
 
   /**
    * Méthode appelée quand l'utilisateur clique sur le bouton de connexion
-   * 
-   * Le processus de connexion :
-   * 1. On vérifie que le formulaire est valide (tout est rempli)
-   * 2. On active l'indicateur de chargement
-   * 3. On récupère les identifiants saisis
-   * 4. On les envoie au serveur
-   * 5. Si ça marche, on redirige vers la page d'accueil
-   * 6. Si ça ne marche pas, on affiche un message d'erreur
    */
   onSubmit(): void {
     // On vérifie que le formulaire est valide
     if (this.loginForm.valid) {
       // On active l'indicateur de chargement
       this.isLoading = true;
+      this.isSuccess = false;
+      this.isError = false;
+      
+      // Démarrer l'animation de connexion
+      this.authService.startConnecting();
+      
       // On efface les messages d'erreur précédents
       this.errorMessage = '';
+      this.showError = false;
 
       // On récupère les identifiants saisis
-      const credentials = {
+      const credentials: LoginCredentials = {
         username: this.loginForm.get('username')?.value,
         password: this.loginForm.get('password')?.value
       };
@@ -421,22 +529,87 @@ export class LoginComponent implements OnInit {
       this.authService.login(credentials).subscribe({
         // Si la connexion réussit
         next: (response: AuthResponse) => {
-          this.isLoading = false;  // On désactive le chargement
-          // On redirige vers la page d'accueil
-          this.router.navigate(['/']);
+          console.log('Réponse complète du serveur:', response);
+          
+          if (response && response.accessToken) {
+            // Attendre au moins 3 secondes avant de rediriger
+            setTimeout(() => {
+              this.isLoading = false;
+              this.isSuccess = true;
+              
+              // Attendre que l'animation de succès se termine avant de rediriger
+              setTimeout(() => {
+                // Arrêter l'animation de connexion
+                this.authService.stopConnecting();
+                
+                // Attendre que la barre revienne à sa position initiale
+                setTimeout(() => {
+                  // Vérifiez si c'est la première connexion en vérifiant si passwordChangedAt est null
+                  if (!response.utilisateur.passwordChangedAt) {
+                    console.log('Première connexion, redirection vers first-password');
+                    this.router.navigate(['/first-password']);
+                  } else {
+                    console.log('Connexion réussie, redirection vers dashboard');
+                    this.router.navigate(['/dashboard']);
+                  }
+                }, 800); // Attendre que la transition de retour se termine
+              }, 1000); // Attendre 1 seconde pour l'animation de succès
+            }, 3000); // Délai minimum de 3 secondes
+          } else {
+            setTimeout(() => {
+              this.isLoading = false;
+              this.isError = true;
+              this.errorMessage = 'Une erreur est survenue lors de la connexion';
+              this.showError = true;
+              
+              // Arrêter l'animation de connexion
+              this.authService.stopConnecting();
+              
+              // Réinitialiser l'état d'erreur après 2 secondes + délai de transition
+              setTimeout(() => {
+                this.isError = false;
+              }, 2800); // 2 secondes + 800ms pour la transition
+            }, 3000);
+          }
         },
         // Si la connexion échoue
         error: (error) => {
-          this.isLoading = false;  // On désactive le chargement
+          console.error('Erreur de connexion:', error);
           
-          // On affiche un message d'erreur approprié
-          if (error.status === 401) {
-            // Si les identifiants sont incorrects
-            this.errorMessage = 'Identifiants invalides';
-          } else {
-            // Pour toute autre erreur
-            this.errorMessage = 'Une erreur est survenue lors de la connexion';
-          }
+          // Attendre au moins 3 secondes avant d'afficher l'erreur
+          setTimeout(() => {
+            this.isLoading = false;
+            this.isError = true;
+            
+            // Arrêter l'animation de connexion
+            this.authService.stopConnecting();
+            
+            // On vide le champ mot de passe pour que l'utilisateur puisse réessayer
+            this.loginForm.patchValue({
+              password: ''
+            });
+            
+            // On affiche un message d'erreur approprié
+            if (error.status === 401) {
+              // Si les identifiants sont incorrects
+              this.errorMessage = 'Identifiants invalides';
+            } else if (error.error?.message) {
+              // Si le serveur renvoie un message d'erreur spécifique
+              this.errorMessage = error.error.message;
+            } else if (error.error?.errors) {
+              // Si le serveur renvoie des erreurs de validation
+              this.errorMessage = Object.values(error.error.errors).join(', ');
+            } else {
+              // Pour toute autre erreur
+              this.errorMessage = 'Une erreur est survenue lors de la connexion';
+            }
+            this.showError = true;
+            
+            // Réinitialiser l'état d'erreur après 2 secondes + délai de transition
+            setTimeout(() => {
+              this.isError = false;
+            }, 2800); // 2 secondes + 800ms pour la transition
+          }, 3000); // Délai minimum de 3 secondes
         }
       });
     }
